@@ -2,13 +2,14 @@ const express = require("express");
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const cors = require("cors"); // Add this line
+const cors = require("cors");
+const axios = require("axios");
 
 const app = express();
 const PORT = 3000;
 
 // Middleware
-app.use(cors()); // Add this line to allow CORS for all origins
+app.use(cors());
 app.use(express.json());
 
 // MongoDB Connection
@@ -24,6 +25,10 @@ mongoose
 const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
+  name: String,
+  surname: String,
+  experience: String,
+  projects: Array,
 });
 
 const User = mongoose.model("User", userSchema);
@@ -52,7 +57,7 @@ app.post("/register", async (req, res) => {
   res.status(201).json({ token });
 });
 
-// Login route in your Node.js backend
+// Login route
 app.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
@@ -73,27 +78,26 @@ app.post("/login", async (req, res) => {
   res.json({ token });
 });
 
+// Fetch mentors route
 app.get("/mentors", async (req, res) => {
   try {
-    const mentors = await User.find(); // Assuming you have a User model
-    res.json(mentors); // Return the list of users
+    const mentors = await User.find();
+    res.json(mentors);
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch mentors" });
   }
 });
 
-
+// Update user profile route
 app.post("/user/profile", async (req, res) => {
   const { userId, name, surname, experience, projects } = req.body;
 
   try {
-    // Find the user by userId (assuming you pass the userId from Flutter)
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Update the user's profile data
     user.name = name;
     user.surname = surname;
     user.experience = experience;
@@ -107,6 +111,36 @@ app.post("/user/profile", async (req, res) => {
   }
 });
 
+// New Route for Text Generation
+app.post("/generate-text", async (req, res) => {
+  const { input } = req.body;
+
+  try {
+    const API_TOKEN = "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"; // Replace with your Hugging Face API token
+    const model = "meta-llama/Llama-3.2-11B-Vision-Instruct"; // Model endpoint
+
+    // Pre-prompt to guide text generation
+    const combinedInput = input;
+
+    const response = await axios.post(
+      `https://api-inference.huggingface.co/models/${model}`,
+      { inputs: combinedInput },
+      {
+        headers: {
+          Authorization: `Bearer ${API_TOKEN}`,
+        },
+      }
+    );
+
+    res.json({ output: response.data });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to generate text" });
+  }
+});
+
+
+// Start the server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
