@@ -35,7 +35,7 @@ const User = mongoose.model("User", userSchema);
 
 // User Registration Route
 app.post("/register", async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password, name, surname, experience, projects } = req.body;
 
   // Check if user exists
   const existingUser = await User.findOne({ email });
@@ -48,7 +48,14 @@ app.post("/register", async (req, res) => {
   const hashedPassword = await bcrypt.hash(password, salt);
 
   // Create a new user
-  const newUser = new User({ email, password: hashedPassword });
+  const newUser = new User({
+    email,
+    password: hashedPassword,
+    name,
+    surname,
+    experience,
+    projects,
+  });
   await newUser.save();
 
   // Generate a token
@@ -138,7 +145,6 @@ app.post("/generate-text", async (req, res) => {
     res.status(500).json({ error: "Failed to generate text" });
   }
 });
-
 
 // Start the server
 app.listen(PORT, () => {
